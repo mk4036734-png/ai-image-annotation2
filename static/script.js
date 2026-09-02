@@ -1,61 +1,77 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('upload-form');
-    const fileInput = document.getElementById('file-input');
-    const dropZone = document.getElementById('drop-zone');
-    const submitBtn = document.getElementById('submit-btn');
-    const resultImage = document.getElementById('result-image');
-    const detectionData = document.getElementById('detection-data');
+document.addEventListener("DOMContentLoaded", () => {
+    const imageInput = document.getElementById("imageInput");
+    const detectBtn = document.getElementById("detectBtn");
+    const originalImg = document.getElementById("originalImg");
+    const detectedImg = document.getElementById("detectedImg");
+    const statusMsg = document.getElementById("status-msg");
+    const detectionsList = document.getElementById("detectionsList");
 
-    fileInput.addEventListener('change', () => {
-        if (fileInput.files.length > 0) {
-            const prompt = dropZone.querySelector('.drop-zone-prompt');
-            if (prompt) prompt.textContent = fileInput.files[0].name;
+    // Preview original image immediately when picked
+    imageInput.addEventListener("change", () => {
+        if (imageInput.files && imageInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                originalImg.src = e.target.result;
+                originalImg.style.display = "block";
+            };
+            reader.readAsDataURL(imageInput.files[0]);
+            detectedImg.style.display = "none";
+            detectionsList.innerHTML = "";
+            statusMsg.textContent = "";
         }
     });
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        if (!fileInput.files[0]) {
-            alert('Please select an image first.');
+    // Handle Detect click
+    detectBtn.addEventListener("click", async () => {
+        if (!imageInput.files || !imageInput.files[0]) {
+            alert("Please choose an image file first!");
             return;
         }
 
         const formData = new FormData();
-        formData.append('image', fileInput.files[0]);
+        formData.append("image", imageInput.files[0]);
 
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Detecting...';
-        detectionData.textContent = 'Processing with YOLOv8...';
+        detectBtn.disabled = true;
+        statusMsg.textContent = "Processing image with YOLOv8...";
+        statusMsg.style.color = "#1565c0";
 
         try {
-            const response = await fetch('/detect', {
-                method: 'POST',
+            const response = await fetch("/detect", {
+                method: "POST",
                 body: formData
             });
 
-            if (!response.ok) {
-                throw new Error(`Server returned error ${response.status}`);
-            }
-
             const data = await response.json();
 
-            if (data.image_url || data.result_image) {
-                resultImage.src = data.image_url || data.result_image;
-                resultImage.style.display = 'block';
+            if (!response.ok || data.error) {
+                throw new Error(data.error || `Server error: ${response.status}`);
             }
 
-            if (data.detections || data.boxes) {
-                detectionData.textContent = JSON.stringify(data.detections || data.boxes, null, 2);
+            // Display annotated image with timestamp to beat caching
+            detectedImg.src = data.image_url + "?t=" + new Date().getTime();
+            detectedImg.style.display = "block";
+
+            // Format results list
+            if (data.detections && data.detections.length > 0) {
+                let html = "<strong>Objects Detected:</strong><ul>";
+                data.detections.forEach(item => {
+                    html += `<li>${item.class} (${Math.round(item.confidence * 100)}%)</li>`;
+                });
+                html += "</ul>";
+                detectionsList.innerHTML = html;
             } else {
-                detectionData.textContent = 'Detection complete!';
+                detectionsList.innerHTML = "<em>No objects detected above threshold.</em>";
             }
+
+            statusMsg.textContent = "Detection Complete! ✅";
+            statusMsg.style.color = "#2e7d32";
+
         } catch (err) {
             console.error(err);
-            detectionData.textContent = 'Detection failed: ' + err.message;
+            statusMsg.textContent = "Detection failed: " + err.message;
+            statusMsg.style.color = "#c62828";
         } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Detect & Annotate';
+            detectBtn.disabled = false;
         }
     });
 });
