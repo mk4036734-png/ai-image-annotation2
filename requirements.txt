@@ -1,6 +1,6 @@
-Flask
-ultralytics
-opencv-python-headless
-numpy
-Pillow
-gunicorn
+Flask>=3.0.0
+ultralytics>=8.0.0
+opencv-python-headless>=4.8.0
+werkzeug>=3.0.0
+gunicorn>=21.0.0
+torch
