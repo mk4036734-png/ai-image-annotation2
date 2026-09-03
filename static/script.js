@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const statusMsg = document.getElementById("status-msg");
     const detectionsList = document.getElementById("detectionsList");
 
-    // Preview original image immediately when picked
     imageInput.addEventListener("change", () => {
         if (imageInput.files && imageInput.files[0]) {
             const reader = new FileReader();
@@ -21,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Handle Detect click
     detectBtn.addEventListener("click", async () => {
         if (!imageInput.files || !imageInput.files[0]) {
             alert("Please choose an image file first!");
@@ -47,11 +45,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 throw new Error(data.error || `Server error: ${response.status}`);
             }
 
-            // Display annotated image with timestamp to beat caching
             detectedImg.src = data.image_url + "?t=" + new Date().getTime();
             detectedImg.style.display = "block";
 
-            // Format results list
             if (data.detections && data.detections.length > 0) {
                 let html = "<strong>Objects Detected:</strong><ul>";
                 data.detections.forEach(item => {
